@@ -12,16 +12,22 @@ interface AccountSetupPageProps {
 }
 
 export function AccountSetupPage({ fbUser, onSetupComplete, onLogout }: AccountSetupPageProps) {
-  const [fullName, setFullName] = useState(fbUser.displayName || "");
-  const [entities, setEntities] = useState<EntityCompany[]>(DEFAULT_ENTITIES);
-  const [selectedEntityId, setSelectedEntityId] = useState(DEFAULT_ENTITIES[0].id);
-  const [saving, setSaving] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-
   const email = fbUser.email || "";
   const isAdminEmail = email.toLowerCase() === "andrewmanuel310@gmail.com" || email.toLowerCase() === "andrewmanuel3105@gmail.com";
   const assignedRole = isAdminEmail ? "admin" : "user";
   const assignedStatus = isAdminEmail ? "active" : "pending";
+
+  const [fullName, setFullName] = useState(fbUser.displayName || "");
+  const [entities, setEntities] = useState<EntityCompany[]>(DEFAULT_ENTITIES);
+  const [selectedEntityId, setSelectedEntityId] = useState(() => {
+    if (isAdminEmail) {
+      const stlaf = DEFAULT_ENTITIES.find(e => e.id === "ent_stlaf");
+      if (stlaf) return "ent_stlaf";
+    }
+    return DEFAULT_ENTITIES[0].id;
+  });
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   // Fetch entities from Firestore and display active ones
   useEffect(() => {
@@ -49,13 +55,23 @@ export function AccountSetupPage({ fbUser, onSetupComplete, onLogout }: AccountS
           const activeOnly = DEFAULT_ENTITIES.filter(e => e.status === "active");
           if (activeOnly.length > 0) {
             setEntities(activeOnly);
-            setSelectedEntityId(activeOnly[0].id);
+            const hasStlaf = activeOnly.some(e => e.id === "ent_stlaf");
+            if (isAdminEmail && hasStlaf) {
+              setSelectedEntityId("ent_stlaf");
+            } else {
+              setSelectedEntityId(activeOnly[0].id);
+            }
           }
         } else {
           const activeOnly = filteredList.filter(e => e.status === "active");
           if (activeOnly.length > 0) {
             setEntities(activeOnly);
-            setSelectedEntityId(activeOnly[0].id);
+            const hasStlaf = activeOnly.some(e => e.id === "ent_stlaf");
+            if (isAdminEmail && hasStlaf) {
+              setSelectedEntityId("ent_stlaf");
+            } else {
+              setSelectedEntityId(activeOnly[0].id);
+            }
           }
         }
       } catch (err) {
@@ -63,7 +79,7 @@ export function AccountSetupPage({ fbUser, onSetupComplete, onLogout }: AccountS
       }
     }
     loadEntities();
-  }, []);
+  }, [isAdminEmail]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

@@ -44,6 +44,7 @@ export interface NotificationItem {
 }
 
 export const DEFAULT_ENTITIES: EntityCompany[] = [
+  { id: "ent_stlaf", name: "Sadsad-Tamesis Legal and Accounting Firm", status: "active" },
   { id: "ent_rplai", name: "Rizal Poultry and Livestock Association, Inc.", status: "active" },
   { id: "ent_brasbag", name: "Brasbag Development Corporation", status: "active" },
   { id: "ent_happyhen", name: "Happy Hen Hatchery, Inc.", status: "active" },
