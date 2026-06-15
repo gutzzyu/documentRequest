@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User account in the RPLAI portal",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "entityId": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "status": { "type": "string", "enum": ["pending", "active", "disabled"] }
+      },
+      "required": ["uid", "email", "name", "entityId", "role", "status"]
+    },
+    "Entity": {
+      "title": "Entity",
+      "description": "RPLAI affiliate company or client entity",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "disabled"] }
+      },
+      "required": ["id", "name", "status"]
+    },
+    "Request": {
+      "title": "Request",
+      "description": "RPLAI system request",
+      "type": "object",
+      "properties": {
+        "requestId": { "type": "string" },
+        "userId": { "type": "string" },
+        "entityId": { "type": "string" },
+        "requestType": { "type": "string" },
+        "priority": { "type": "string", "enum": ["standard", "urgent", "sameday"] },
+        "status": { "type": "string", "enum": ["Submitted", "Under Review", "Processing", "Completed", "Rejected"] },
+        "description": { "type": "string" },
+        "attachments": { "type": "array" },
+        "notes": { "type": "string" },
+        "comments": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["requestId", "userId", "entityId", "requestType", "priority", "status", "description", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Targeted updates or general logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "message", "read", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "#/entities/User",
+      "description": "RPLAI user accounts"
+    },
+    "entities/{entityId}": {
+      "schema": "#/entities/Entity",
+      "description": "RPLAI client entities"
+    },
+    "requests/{requestId}": {
+      "schema": "#/entities/Request",
+      "description": "Requests made in the RPLAI portal"
+    },
+    "notifications/{notificationId}": {
+      "schema": "#/entities/Notification",
+      "description": "System and user level notifications"
+    }
+  }
+}

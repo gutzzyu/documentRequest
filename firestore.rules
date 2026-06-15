@@ -1,0 +1,199 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Pillar 1)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE SECURITY PRIMITIVES ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$');
+    }
+
+    function isGoogleAdminEmail(email) {
+      return email.lower() == 'andrewmanuel310@gmail.com' || email.lower() == 'andrewmanuel3105@gmail.com';
+    }
+
+    // Role & Status Lookup
+    function getUserData(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        isGoogleAdminEmail(request.auth.token.email) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData(request.auth.uid).role == 'admin')
+      );
+    }
+
+    function isActiveUser() {
+      return isSignedIn() && (
+        isAdmin() || (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          getUserData(request.auth.uid).status == 'active'
+        )
+      );
+    }
+
+    // --- USERS COLLECTION ---
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      
+      allow create: if isSignedIn() 
+        && request.auth.uid == userId 
+        && isValidUser(incoming())
+        // Restrict role and status on creation (only white-listed emails can auto-activate/be admin)
+        && incoming().role == (isGoogleAdminEmail(request.auth.token.email) ? 'admin' : 'user')
+        && incoming().status == (isGoogleAdminEmail(request.auth.token.email) ? 'active' : 'pending');
+
+      allow update: if isSignedIn() && (
+        (isAdmin() && isValidAdminEditedUser(incoming())) || (
+          request.auth.uid == userId 
+          && isValidUser(incoming())
+          && incoming().uid == existing().uid
+          && incoming().email == existing().email
+          && incoming().role == existing().role
+          && incoming().status == existing().status
+        )
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    function isValidUser(user) {
+      return user.keys().hasAll(['uid', 'email', 'name', 'entityId', 'role', 'status'])
+        && user.keys().size() == 6
+        && user.uid == request.auth.uid
+        && user.email.lower() == request.auth.token.email.lower()
+        && user.name is string && user.name.size() >= 2 && user.name.size() <= 150
+        && user.entityId is string && user.entityId.size() >= 1 && user.entityId.size() <= 128
+        && user.role in ['admin', 'user']
+        && user.status in ['pending', 'active', 'disabled'];
+    }
+
+    function isValidAdminEditedUser(user) {
+      return user.keys().hasAll(['uid', 'email', 'name', 'entityId', 'role', 'status'])
+        && user.keys().size() == 6
+        && user.uid is string && user.uid.size() >= 1
+        && user.email is string && user.email.size() >= 3
+        && user.name is string && user.name.size() >= 2 && user.name.size() <= 150
+        && user.entityId is string && user.entityId.size() >= 1
+        && user.role in ['admin', 'user']
+        && user.status in ['pending', 'active', 'disabled'];
+    }
+
+    // --- ENTITIES COLLECTION ---
+    match /entities/{entityId} {
+      // Allow everyone to read active entities (safe public metadata used for dropdown setup)
+      allow read, get, list: if true;
+      allow create, update: if isAdmin() && isValidEntity(incoming()) && isValidId(entityId);
+      allow delete: if isAdmin();
+    }
+
+    function isValidEntity(entity) {
+      return entity.keys().hasAll(['id', 'name', 'status'])
+        && entity.keys().size() == 3
+        && entity.id is string && entity.id.size() >= 1 && entity.id.size() <= 128
+        && entity.name is string && entity.name.size() >= 2 && entity.name.size() <= 200
+        && entity.status in ['active', 'disabled'];
+    }
+
+    // --- REQUESTS COLLECTION ---
+    match /requests/{requestId} {
+      allow read, list: if isSignedIn() && (
+        isAdmin() || (
+          isActiveUser() && 
+          resource.data.userId == request.auth.uid
+        )
+      );
+
+      allow create: if isActiveUser()
+        && isValidId(requestId)
+        && isValidRequest(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().status == 'Submitted';
+
+      allow update: if isSignedIn()
+        && isValidId(requestId)
+        && (
+          (isAdmin() && isValidRequest(incoming())) || (
+            isActiveUser()
+            && isValidRequest(incoming())
+            && incoming().userId == request.auth.uid
+            && incoming().status == existing().status
+            && incoming().diff(existing()).affectedKeys().hasOnly(['description', 'notes', 'attachments', 'comments'])
+          )
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    function isValidRequest(req) {
+      return req.keys().hasAll(['requestId', 'userId', 'entityId', 'requestType', 'priority', 'status', 'description', 'attachments', 'createdAt'])
+        && req.requestId is string && req.requestId.size() <= 64
+        && req.userId is string && req.userId.size() <= 128
+        && req.entityId is string && req.entityId.size() <= 128
+        && req.requestType is string && req.requestType.size() >= 2 && req.requestType.size() <= 150
+        && req.priority in ['standard', 'urgent', 'sameday']
+        && req.status in ['Submitted', 'Under Review', 'Processing', 'Completed', 'Rejected']
+        && req.description is string && req.description.size() <= 3000
+        && req.attachments is list
+        && req.createdAt is string;
+    }
+
+    // --- NOTIFICATIONS COLLECTION ---
+    match /notifications/{notificationId} {
+      allow read, list: if isSignedIn() && (
+        isAdmin() || (
+          isActiveUser() && 
+          resource.data.userId == request.auth.uid
+        )
+      );
+
+      allow create: if isAdmin() || (
+        isSignedIn() 
+        && isValidId(notificationId)
+        && isValidNotification(incoming())
+        && (incoming().userId == request.auth.uid || incoming().userId == 'admin')
+      );
+
+      allow update: if isSignedIn()
+        && isValidId(notificationId)
+        && (
+          isAdmin() || (
+            isActiveUser()
+            && isValidNotification(incoming())
+            && incoming().userId == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['read'])
+          )
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    function isValidNotification(notif) {
+      return notif.keys().hasAll(['id', 'userId', 'title', 'message', 'read', 'createdAt'])
+        && notif.keys().size() == 6
+        && notif.id is string && notif.id.size() <= 128
+        && notif.userId is string && notif.userId.size() <= 128
+        && notif.title is string && notif.title.size() >= 1 && notif.title.size() <= 200
+        && notif.message is string && notif.message.size() >= 1 && notif.message.size() <= 1500
+        && notif.read is bool
+        && notif.createdAt is string;
+    }
+  }
+}
