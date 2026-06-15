@@ -6,8 +6,6 @@ import {
   X, 
   Send, 
   Download, 
-  Sparkles, 
-  Copy, 
   FileText, 
   Check, 
   Paperclip,
@@ -43,10 +41,6 @@ export function RequestDetailsModal({
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [addingComment, setAddingComment] = useState(false);
 
-  // AI draft state
-  const [aiDraft, setAiDraft] = useState("");
-  const [loadingAi, setLoadingAi] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [deletingRequest, setDeletingRequest] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [errorFeedbackMsg, setErrorFeedbackMsg] = useState("");
@@ -212,43 +206,7 @@ export function RequestDetailsModal({
     }
   };
 
-  // Generate real legal resolution mock via server API
-  const handleGenerateAIDraft = async () => {
-    setLoadingAi(true);
-    setAiDraft("");
-    try {
-      const titleText = req.description.split("\n\n")[0] || req.description;
-      const res = await fetch("/api/ai/draft-resolution", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requestType: req.requestType,
-          purpose: titleText,
-          description: req.description,
-          notes: req.notes || ""
-        })
-      });
 
-      const data = await res.json();
-      if (data.draft) {
-        setAiDraft(data.draft);
-      } else {
-        setAiDraft("No template was returned from the server. Check process log.");
-      }
-    } catch (err) {
-      console.error(err);
-      setAiDraft("Failed to connect to the legal drafting server. Confirm the app environment variables.");
-    } finally {
-      setLoadingAi(false);
-    }
-  };
-
-  const handleCopyClipboard = () => {
-    if (!aiDraft) return;
-    navigator.clipboard.writeText(aiDraft);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const statusOptions = ["Submitted", "Under Review", "Processing", "Completed", "Rejected"];
 
@@ -440,96 +398,7 @@ export function RequestDetailsModal({
                 )}
               </div>
 
-              {/* Gemini AI Secretariat resolution templates drafter block */}
-              <div style={{ 
-                background: "linear-gradient(135deg, rgba(201,168,76,0.05) 0%, rgba(201,168,76,0.01) 100%)",
-                border: "1px solid rgba(201,168,76,0.22)", 
-                borderRadius: "12px", 
-                padding: "18px"
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Sparkles size={16} style={{ color: "var(--gold)" }} />
-                    <strong style={{ fontSize: 14, color: "var(--navy)" }}>Gemini Secretariat Drafting Assistant</strong>
-                  </div>
-                  {!aiDraft && (
-                    <button 
-                      className="btn btn-navy btn-sm"
-                      onClick={handleGenerateAIDraft}
-                      disabled={loadingAi}
-                      style={{ background: "var(--navy)", color: "white", padding: "6px 12px", borderRadius: "6px" }}
-                    >
-                      {loadingAi ? (
-                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <Loader2 size={13} className="spin" />
-                          Drafting resolution...
-                        </span>
-                      ) : "Generate Template"}
-                    </button>
-                  )}
-                </div>
 
-                {loadingAi && (
-                  <div style={{ textAlign: "center", padding: "24px 0" }}>
-                    <div style={{ display: "inline-block", background: "var(--cream)", padding: 12, borderRadius: "50%", marginBottom: 8 }}>
-                      <Loader2 size={24} className="spin text-gold" style={{ color: "var(--gold)" }} />
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)" }}>AI Drafting Tool Analyzing Core Context...</div>
-                    <p style={{ fontSize: 11.5, color: "var(--text-light)" }}>Composing formal meeting recitals and signature blocks.</p>
-                  </div>
-                )}
-
-                {aiDraft && (
-                  <div style={{ position: "relative" }}>
-                    <textarea
-                      className="form-textarea"
-                      readOnly
-                      value={aiDraft}
-                      style={{ 
-                        height: "180px", 
-                        fontFamily: "var(--font-mono)", 
-                        fontSize: "11.5px", 
-                        background: "var(--white)", 
-                        padding: 12,
-                        lineHeight: 1.5,
-                        borderColor: "rgba(201,168,76,0.3)"
-                      }}
-                    />
-                    <div style={{ display: "flex", gap: 8, marginTop: 8, justifyContent: "flex-end" }}>
-                      <button 
-                        className="btn btn-ghost btn-sm"
-                        onClick={handleCopyClipboard}
-                        style={{ fontSize: 11, padding: "5px 10px" }}
-                      >
-                        {copied ? (
-                          <span style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--green)" }}>
-                            <Check size={12} />
-                            Copied!
-                          </span>
-                        ) : (
-                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <Copy size={12} />
-                            Copy Template
-                          </span>
-                        )}
-                      </button>
-                      <button 
-                        className="btn btn-navy btn-sm"
-                        onClick={handleGenerateAIDraft}
-                        style={{ fontSize: 11, padding: "5px 10px", background: "var(--navy)", color: "white" }}
-                      >
-                        Regenerate
-                      </button>
-                    </div>
-                  </div>
-                )}
-                
-                {!aiDraft && !loadingAi && (
-                  <p style={{ fontSize: 11.5, color: "var(--text-light)", lineHeight: 1.4, margin: 0 }}>
-                    Instantly draft professional legal templates, meeting resolutions, board certifications, and voting minutes tailored directly to this submission using the power of structural Gemini models.
-                  </p>
-                )}
-              </div>
 
             </div>
 
