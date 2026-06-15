@@ -1,10 +1,10 @@
 {
-  "projectId": "aesthetic-day-jv8b6",
-  "appId": "1:896367189203:web:cf54328b4b0446d8834826",
-  "apiKey": "AIzaSyAKjnLrMSiTuU8STh5MhainA3gDymH-BlU",
-  "authDomain": "aesthetic-day-jv8b6.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-0215d25a-3f0b-4aa0-be8b-d5249781acdc",
-  "storageBucket": "aesthetic-day-jv8b6.firebasestorage.app",
-  "messagingSenderId": "896367189203",
-  "measurementId": ""
+  "projectId": "stlaf-document-request",
+  "appId": "1:175332618150:web:e89f4619fa7936e2dd6967",
+  "apiKey": "AIzaSyCAqwXp7LtxzIgrodCu1dPZHlcZ7u54Ny8",
+  "authDomain": "stlaf-document-request.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "stlaf-document-request.firebasestorage.app",
+  "messagingSenderId": "175332618150",
+  "measurementId": "G-DQ42HFYV23"
 }

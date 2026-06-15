@@ -1,11 +1,26 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
+import appletConfig from '../firebase-applet-config.json';
+
+// Use VITE_ prefix environment variables (perfect for Vercel/production) or fall back to the dynamic applet config.
+const metaEnv = (import.meta as any).env || {};
+const firebaseConfig = {
+  apiKey: metaEnv.VITE_FIREBASE_API_KEY || appletConfig.apiKey,
+  authDomain: metaEnv.VITE_FIREBASE_AUTH_DOMAIN || appletConfig.authDomain,
+  projectId: metaEnv.VITE_FIREBASE_PROJECT_ID || appletConfig.projectId,
+  storageBucket: metaEnv.VITE_FIREBASE_STORAGE_BUCKET || appletConfig.storageBucket,
+  messagingSenderId: metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || appletConfig.messagingSenderId,
+  appId: metaEnv.VITE_FIREBASE_APP_ID || appletConfig.appId,
+  firestoreDatabaseId: metaEnv.VITE_FIREBASE_FIRESTORE_DATABASE_ID || appletConfig.firestoreDatabaseId || "(default)"
+};
 
 const app = initializeApp(firebaseConfig);
-// CRITICAL: The app will break without specifying the firestoreDatabaseId
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// CRITICAL: The app will break without specifying the firestoreDatabaseId if on AI Studio,
+// but standard custom Firestores should initialize without a database ID (or as default)
+export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== "(default)"
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
 export const auth = getAuth();
 
 export enum OperationType {

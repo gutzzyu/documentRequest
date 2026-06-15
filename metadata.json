@@ -1,5 +1,5 @@
 {
-  "name": "Corporate Secretarial Workflow",
+  "name": "STLAF Document Request Portal",
   "description": "RPLAI Request Management Portal with role-based access control, Google authentication, dynamic entity registrations, and administrative approval workflows.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
